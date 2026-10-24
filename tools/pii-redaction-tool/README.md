@@ -126,6 +126,12 @@ Before running this project, ensure you have:
    ENABLE_AI_DETECTION=true
    ```
 
+   **Note:** To use AI detection, you need to install and run Ollama:
+   1. Download Ollama from https://ollama.com
+   2. Run: `ollama pull llama3.2`
+   3. Run: `ollama serve` (starts Ollama server on port 11434)
+   4. Set `ENABLE_AI_DETECTION=true` in `.env`
+
 ### Option 2: Docker Deployment
 
 1. **Build the Docker image:**
@@ -144,11 +150,11 @@ Before running this project, ensure you have:
 
 | Variable Name | Required | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `OLLAMA_URL` | No | `http://localhost:11434/api/generate` | Ollama API URL for local AI detection |
-| `OLLAMA_MODEL` | No | `llama3.2` | Ollama model name for AI-based detection |
+| `OLLAMA_URL` | No | `http://localhost:11434/api/generate` | Ollama API URL for local AI detection (optional, only if ENABLE_AI_DETECTION=true) |
+| `OLLAMA_MODEL` | No | `llama3.2` | Ollama model name for AI-based detection (optional, only if ENABLE_AI_DETECTION=true) |
 | `CONFIDENCE_THRESHOLD` | No | `0.7` | Minimum confidence score for PII detection (0.0-1.0) |
 | `ENABLE_REGEX_DETECTION` | No | `true` | Enable regex-based detection layer |
-| `ENABLE_AI_DETECTION` | No | `false` | Enable AI-based detection layer |
+| `ENABLE_AI_DETECTION` | No | `false` | Enable AI-based detection layer (requires Ollama to be installed and running) |
 | `REDACTION_STRATEGY` | No | `full` | Redaction strategy: full, partial, hash, mask |
 | `REDACTION_CHAR` | No | `[REDACTED]` | Replacement text for full redaction |
 | `PARTIAL_REDACTION_LENGTH` | No | `4` | Characters to show in partial redaction |
@@ -228,6 +234,46 @@ result = agent.call_tool(
 )
 # Returns: "Contact jo****@example.com"
 ```
+
+### Setting Up Ollama (Optional, for AI Detection)
+
+**Why Ollama?**
+- Privacy-preserving: AI runs locally, no data leaves your computer
+- Free: No API costs
+- Works offline: No internet connection required
+- Suitable for compliance: Meets GDPR, HIPAA requirements
+
+**Installation Steps:**
+
+1. **Download Ollama:**
+   - Visit https://ollama.com
+   - Download and install for your OS (Windows, macOS, or Linux)
+
+2. **Pull the model:**
+   ```bash
+   ollama pull llama3.2
+   ```
+
+3. **Start Ollama server:**
+   ```bash
+   ollama serve
+   ```
+   (This starts the Ollama server on `http://localhost:11434`)
+
+4. **Enable AI detection in the tool:**
+   - In your `.env` file, set:
+     ```
+     ENABLE_AI_DETECTION=true
+     ```
+
+5. **Test AI detection:**
+   ```bash
+   python main.py detect "Contact John Smith at john.smith@example.com"
+   ```
+
+**Ollama Configuration Variables:**
+- `OLLAMA_URL`: Ollama API URL (default: `http://localhost:11434/api/generate`)
+- `OLLAMA_MODEL`: Model to use (default: `llama3.2`)
 
 ### Performance Benchmarks
 
