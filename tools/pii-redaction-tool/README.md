@@ -236,6 +236,11 @@ result = agent.call_tool(
 python benchmark.py
 ```
 
+**Benchmark Results:**
+- Detection: 66,608 ops/sec (avg: 0.02 ms)
+- Redaction: 50,471 ops/sec (avg: 0.02 ms)
+- Full pipeline: 952 ops/sec (avg: 1.06 ms)
+
 This will test detection, redaction, and full pipeline performance across multiple text samples.
 
 ---
