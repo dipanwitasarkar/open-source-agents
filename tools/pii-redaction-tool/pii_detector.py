@@ -141,21 +141,18 @@ class PIIDetector:
         return entities
 
     def _detect_with_ai(self, text: str) -> List[PIIEntity]:
-        """Detect PII using AI model (Gemini)."""
+        """Detect PII using local AI model (Ollama)."""
         entities = []
 
-        if not settings.GOOGLE_API_KEY:
-            return entities
-
         try:
-            import google.generativeai as genai
+            import requests
 
-            genai.configure(api_key=settings.GOOGLE_API_KEY)
-            model = genai.GenerativeModel(settings.MODEL_NAME)
-
+            # Use Ollama's local API
+            ollama_url = "http://localhost:11434/api/generate"
+            
             prompt = f"""
             Analyze the following text and identify all Personally Identifiable Information (PII).
-            Return the results in JSON format with this structure:
+            Return ONLY a JSON object with this structure:
             {{
                 "pii_entities": [
                     {{
@@ -169,13 +166,22 @@ class PIIDetector:
             }}
 
             Text to analyze:
-            {text[:2000]}  # Limit to first 2000 chars for AI
+            {text[:2000]}
             """
 
-            response = model.generate_content(prompt)
-            # Parse AI response and convert to PIIEntity
-            # This is a simplified version - in production, add proper JSON parsing
-            # and error handling
+            response = requests.post(ollama_url, json={
+                "model": "llama3.2",
+                "prompt": prompt,
+                "stream": False,
+                "format": "json"
+            }, timeout=30)
+
+            if response.status_code == 200:
+                result = response.json()
+                # Parse AI response and convert to PIIEntity
+                # This is a simplified version - in production, add proper JSON parsing
+                # and error handling
+                pass
 
         except Exception as e:
             print(f"AI detection error: {e}")

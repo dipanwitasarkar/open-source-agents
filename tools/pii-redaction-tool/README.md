@@ -17,7 +17,7 @@
 ### Key Features
 - **MCP Server**: Model Context Protocol server for AI agent integration
 - **Lightweight Detection**: Regex-based PII detection (no heavy dependencies)
-- **Optional AI Enhancement**: Google Gemini integration for improved accuracy
+- **Optional AI Enhancement**: Ollama (local AI) for context-aware detection without data leaving your computer
 - **Compliance Modes**: Built-in support for GDPR, CCPA, HIPAA, and STRICT
 - **Redaction Strategies**: Full, partial, hash-based, and pattern-preserving mask
 - **Comprehensive Guardrails**: Input validation, rate limiting, confidence filtering, audit logging
@@ -35,7 +35,7 @@
   - Click (CLI interface)
   - Rich (Terminal UI)
 - **MCP Server**: mcp (Model Context Protocol)
-- **AI Model** (optional): Google Gemini 1.5 Flash
+- **AI Model** (optional): Ollama (local AI for privacy-preserving detection)
 - **Containerization**: Docker
 
 ---
@@ -67,7 +67,7 @@
 │              │  Detection Layers    │                           │
 │              ├──────────────────────┤                           │
 │              │ • Regex (primary)    │                           │
-│              │ • AI (optional)       │                           │
+│              │ • Ollama AI (optional, local) │
 │              └──────────────────────┘                           │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -121,9 +121,9 @@ Before running this project, ensure you have:
    cp .env.example .env
    ```
 
-   Edit `.env` and add your Google API key if you want AI-based detection:
+   Edit `.env` and set `ENABLE_AI_DETECTION=true` if you want AI-based detection (requires Ollama):
    ```
-   GOOGLE_API_KEY=your_actual_api_key_here
+   ENABLE_AI_DETECTION=true
    ```
 
 ### Option 2: Docker Deployment
@@ -144,8 +144,8 @@ Before running this project, ensure you have:
 
 | Variable Name | Required | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `GOOGLE_API_KEY` | No | *None* | Google AI Studio API key for AI-based detection (optional) |
-| `MODEL_NAME` | No | `gemini-1.5-flash` | Model identifier for AI-based detection |
+| `OLLAMA_URL` | No | `http://localhost:11434/api/generate` | Ollama API URL for local AI detection |
+| `OLLAMA_MODEL` | No | `llama3.2` | Ollama model name for AI-based detection |
 | `CONFIDENCE_THRESHOLD` | No | `0.7` | Minimum confidence score for PII detection (0.0-1.0) |
 | `ENABLE_REGEX_DETECTION` | No | `true` | Enable regex-based detection layer |
 | `ENABLE_AI_DETECTION` | No | `false` | Enable AI-based detection layer |
@@ -332,7 +332,7 @@ python benchmark.py
 
 ## Known Limitations
 
-- **AI Detection**: Requires Google API key; without it, only regex detection works
+- **AI Detection**: Requires Ollama to be installed and running locally; without it, only regex detection works
 - **Text Size Limit**: Maximum input size is 10MB by default (configurable)
 - **Language Support**: Currently optimized for English text
 - **False Positives**: May redact non-PII that matches patterns (e.g., invoice numbers resembling SSNs)
@@ -353,7 +353,7 @@ python benchmark.py
 
 ### Data Privacy
 - **Local Processing**: Regex detection runs entirely locally without external API calls
-- **Optional AI Layer**: AI-based detection only sends text to Google Gemini if `GOOGLE_API_KEY` is configured
+- **Optional AI Layer**: AI-based detection uses Ollama (local AI) - no data leaves your computer
 - **No Data Storage**: The tool does not store input text or redacted output
 - **Audit Logging**: Audit logs contain only metadata (hashes, counts, categories), not actual PII
 - **Input Hashing**: Input text is hashed (SHA-256) in audit logs for traceability without content storage

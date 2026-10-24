@@ -6,9 +6,9 @@ from typing import Literal
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # API Configuration
-    GOOGLE_API_KEY: str = ""
-    MODEL_NAME: str = "gemini-1.5-flash"
+    # AI Model Configuration (Ollama - local, privacy-preserving)
+    OLLAMA_URL: str = "http://localhost:11434/api/generate"
+    OLLAMA_MODEL: str = "llama3.2"
 
     # Detection Configuration
     CONFIDENCE_THRESHOLD: float = 0.7
