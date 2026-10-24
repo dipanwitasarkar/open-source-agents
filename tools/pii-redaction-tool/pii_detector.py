@@ -147,9 +147,10 @@ class PIIDetector:
         try:
             import requests
 
-            # Use Ollama's local API
-            ollama_url = "http://localhost:11434/api/generate"
-            
+            # Use Ollama's local API from settings
+            ollama_url = settings.OLLAMA_URL
+            ollama_model = settings.OLLAMA_MODEL
+
             prompt = f"""
             Analyze the following text and identify all Personally Identifiable Information (PII).
             Return ONLY a JSON object with this structure:
@@ -170,7 +171,7 @@ class PIIDetector:
             """
 
             response = requests.post(ollama_url, json={
-                "model": "llama3.2",
+                "model": ollama_model,
                 "prompt": prompt,
                 "stream": False,
                 "format": "json"
