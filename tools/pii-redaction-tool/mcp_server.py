@@ -1,9 +1,9 @@
 """MCP Server for PII Redaction Tool."""
 import asyncio
 from typing import Any
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import Tool, TextContent, ListToolsResult, CallToolResult
 
 from pii_detector import PIIDetector
 from redaction_engine import ComplianceRedactor
@@ -11,100 +11,106 @@ from guardrails import SecurityGuardrails
 from config import settings
 
 
-# Create MCP server
-server = Server("pii-redaction-server")
-
 # Initialize components
 detector = PIIDetector()
 redactor = ComplianceRedactor()
 guardrails = SecurityGuardrails()
 
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
+async def list_tools_handler(
+    context: ServerRequestContext,
+    params: Any
+) -> ListToolsResult:
     """List available PII redaction tools."""
-    return [
-        Tool(
-            name="detect_pii",
-            description="Detect PII in text using regex patterns. Returns list of detected PII entities with categories and confidence scores.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "text": {
-                        "type": "string",
-                        "description": "Text to analyze for PII"
-                    }
-                },
-                "required": ["text"]
-            }
-        ),
-        Tool(
-            name="redact_pii",
-            description="Redact PII from text using specified strategy and compliance mode. Returns redacted text and compliance report.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "text": {
-                        "type": "string",
-                        "description": "Text to redact"
+    return ListToolsResult(
+        tools=[
+            Tool(
+                name="detect_pii",
+                description="Detect PII in text using regex patterns. Returns list of detected PII entities with categories and confidence scores.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to analyze for PII"
+                        }
                     },
-                    "strategy": {
-                        "type": "string",
-                        "enum": ["full", "partial", "hash", "mask"],
-                        "description": "Redaction strategy (default: full)",
-                        "default": "full"
+                    "required": ["text"]
+                }
+            ),
+            Tool(
+                name="redact_pii",
+                description="Redact PII from text using specified strategy and compliance mode. Returns redacted text and compliance report.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to redact"
+                        },
+                        "strategy": {
+                            "type": "string",
+                            "enum": ["full", "partial", "hash", "mask"],
+                            "description": "Redaction strategy (default: full)",
+                            "default": "full"
+                        },
+                        "compliance_mode": {
+                            "type": "string",
+                            "enum": ["GDPR", "CCPA", "HIPAA", "STRICT"],
+                            "description": "Compliance mode (default: GDPR)",
+                            "default": "GDPR"
+                        }
                     },
-                    "compliance_mode": {
-                        "type": "string",
-                        "enum": ["GDPR", "CCPA", "HIPAA", "STRICT"],
-                        "description": "Compliance mode (default: GDPR)",
-                        "default": "GDPR"
-                    }
-                },
-                "required": ["text"]
-            }
-        ),
-        Tool(
-            name="check_compliance",
-            description="Check if text complies with specified regulation. Returns compliance status and violations.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "text": {
-                        "type": "string",
-                        "description": "Text to check for compliance"
+                    "required": ["text"]
+                }
+            ),
+            Tool(
+                name="check_compliance",
+                description="Check if text complies with specified regulation. Returns compliance status and violations.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to check for compliance"
+                        },
+                        "compliance_mode": {
+                            "type": "string",
+                            "enum": ["GDPR", "CCPA", "HIPAA", "STRICT"],
+                            "description": "Compliance mode to check (default: GDPR)",
+                            "default": "GDPR"
+                        }
                     },
-                    "compliance_mode": {
-                        "type": "string",
-                        "enum": ["GDPR", "CCPA", "HIPAA", "STRICT"],
-                        "description": "Compliance mode to check (default: GDPR)",
-                        "default": "GDPR"
-                    }
-                },
-                "required": ["text"]
-            }
-        ),
-        Tool(
-            name="get_pii_summary",
-            description="Get a summary of PII types found in text with counts and categories.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "text": {
-                        "type": "string",
-                        "description": "Text to analyze"
-                    }
-                },
-                "required": ["text"]
-            }
-        )
-    ]
+                    "required": ["text"]
+                }
+            ),
+            Tool(
+                name="get_pii_summary",
+                description="Get a summary of PII types found in text with counts and categories.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to analyze"
+                        }
+                    },
+                    "required": ["text"]
+                }
+            )
+        ]
+    )
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: Any) -> list[TextContent]:
+async def call_tool_handler(
+    context: ServerRequestContext,
+    params: Any
+) -> CallToolResult:
     """Handle tool calls."""
     try:
+        name = params.name
+        arguments = params.arguments
+
         if name == "detect_pii":
             text = arguments["text"]
             guardrails.validate_request(text)
@@ -126,10 +132,12 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 "total_count": len(filtered)
             }
 
-            return [TextContent(
-                type="text",
-                text=str(result)
-            )]
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=str(result)
+                )]
+            )
 
         elif name == "redact_pii":
             text = arguments["text"]
@@ -145,10 +153,12 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
 
             guardrails.log_detection(text, filtered)
 
-            return [TextContent(
-                type="text",
-                text=str(result)
-            )]
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=str(result)
+                )]
+            )
 
         elif name == "check_compliance":
             text = arguments["text"]
@@ -176,10 +186,12 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 ]
             }
 
-            return [TextContent(
-                type="text",
-                text=str(result)
-            )]
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=str(result)
+                )]
+            )
 
         elif name == "get_pii_summary":
             text = arguments["text"]
@@ -199,26 +211,38 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 "confidence_avg": sum(e.confidence for e in filtered) / len(filtered) if filtered else 0
             }
 
-            return [TextContent(
-                type="text",
-                text=str(result)
-            )]
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=str(result)
+                )]
+            )
 
         else:
-            return [TextContent(
-                type="text",
-                text=f"Unknown tool: {name}"
-            )]
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=f"Unknown tool: {name}"
+                )]
+            )
 
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"Error: {str(e)}"
-        )]
+        return CallToolResult(
+            content=[TextContent(
+                type="text",
+                text=f"Error: {str(e)}"
+            )]
+        )
 
 
 async def main():
     """Run the MCP server."""
+    server = Server("pii-redaction-server")
+    
+    # Register handlers
+    server.add_request_handler("tools/list", Any, list_tools_handler)
+    server.add_request_handler("tools/call", Any, call_tool_handler)
+    
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
